@@ -137,7 +137,7 @@ onMounted(async () => {
         <div class="header-right">
           <button class="btn-mi-lista">Mi Lista</button>
           <div v-if="currentUser" class="user-menu">
-            <button @click="router.push('/profiles')" class="btn-profile">
+            <button @click="router.push('/manager/profiles')" class="btn-profile">
               <span>{{ currentUser.username.charAt(0).toUpperCase() }}</span>
             </button>
           </div>

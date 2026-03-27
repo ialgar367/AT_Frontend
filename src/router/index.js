@@ -3,7 +3,9 @@ import { useAuth } from '../composables/useAuth'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
-import ChooseProfile from '../views/Choose_Profile.vue'
+import ChooseProfile from '../views/manager/ChooseProfile.vue'
+import AdminDashboard from '../views/backoffice/AdminDashboard.vue'
+import AddAnime from '../views/backoffice/AddAnime.vue'
 
 const routes = [
   {
@@ -23,10 +25,22 @@ const routes = [
     meta: { requiresGuest: true },
   },
   {
-    path: '/profiles',
+    path: '/manager/profiles',
     name: 'ChooseProfile',
     component: ChooseProfile,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/backoffice',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/backoffice/add-anime',
+    name: 'AddAnime',
+    component: AddAnime,
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/home',
@@ -50,10 +64,17 @@ router.beforeEach(async (to, from, next) => {
   }
 
   const isAuthenticated = !!currentUser.value
+  const isAdmin = currentUser.value?.username === 'admin'
 
   // Proteger rutas que requieren autenticación
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
+    return
+  }
+
+  // Proteger rutas que requieren ser administrador (solo usuario 'admin')
+  if (to.meta.requiresAdmin && !isAdmin) {
+    next('/home')
     return
   }
 

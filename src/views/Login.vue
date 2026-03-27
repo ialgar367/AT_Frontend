@@ -34,8 +34,13 @@ async function handleLogin() {
   }
 
   try {
-    await login(username.value, password.value)
-    router.push('/home')
+    const user = await login(username.value, password.value)
+    // Redirigir según el tipo de usuario
+    if (user?.username === 'admin') {
+      router.push('/backoffice')
+    } else {
+      router.push('/home')
+    }
   } catch (error) {
     errorMessage.value = error.message
   }

@@ -79,7 +79,7 @@ export function useAuth() {
 
     const data = await response.json()
     currentUser.value = data.user
-    return data
+    return data.user
   }
 
   async function logout() {
