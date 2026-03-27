@@ -137,8 +137,8 @@ onMounted(async () => {
         <div class="header-right">
           <button class="btn-mi-lista">Mi Lista</button>
           <div v-if="currentUser" class="user-menu">
-            <button @click="handleLogout" class="btn-logout">
-              <span>{{ currentUser.username }}</span>
+            <button @click="router.push('/profiles')" class="btn-profile">
+              <span>{{ currentUser.username.charAt(0).toUpperCase() }}</span>
             </button>
           </div>
         </div>
@@ -305,6 +305,33 @@ onMounted(async () => {
 .btn-mi-lista:hover {
   background: #a855f7;
   color: #fff;
+}
+
+.btn-profile {
+  background: #a855f7;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.3s;
+}
+
+.btn-profile:hover {
+  background: #9333ea;
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-profile span {
+  display: block;
 }
 
 .btn-logout {
