@@ -3,6 +3,7 @@ import { useAuth } from '../composables/useAuth'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
+import ChooseProfile from '../views/Choose_Profile.vue'
 
 const routes = [
   {
@@ -20,6 +21,12 @@ const routes = [
     name: 'Register',
     component: Register,
     meta: { requiresGuest: true },
+  },
+  {
+    path: '/profiles',
+    name: 'ChooseProfile',
+    component: ChooseProfile,
+    meta: { requiresAuth: true },
   },
   {
     path: '/home',

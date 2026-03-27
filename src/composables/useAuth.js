@@ -21,6 +21,10 @@ export function useAuth() {
   async function loadCurrentUser() {
     try {
       const response = await fetch('/api/auth/user/', { credentials: 'include' })
+      if (!response.ok) {
+        currentUser.value = null
+        return null
+      }
       const data = await response.json()
       currentUser.value = data.isAuthenticated ? data.user : null
       return currentUser.value
@@ -44,12 +48,12 @@ export function useAuth() {
       body: JSON.stringify({ username, email, password }),
     })
 
-    const data = await response.json()
-    
     if (!response.ok) {
+      const data = await response.json().catch(() => ({ detail: 'Error al registrar' }))
       throw new Error(data.detail || 'Error al registrar')
     }
 
+    const data = await response.json()
     currentUser.value = data.user
     return data
   }
@@ -68,12 +72,12 @@ export function useAuth() {
       body: JSON.stringify({ username, password }),
     })
 
-    const data = await response.json()
-    
     if (!response.ok) {
+      const data = await response.json().catch(() => ({ detail: 'Credenciales inválidas' }))
       throw new Error(data.detail || 'Credenciales inválidas')
     }
 
+    const data = await response.json()
     currentUser.value = data.user
     return data
   }
@@ -90,12 +94,12 @@ export function useAuth() {
       },
     })
 
-    const data = await response.json()
-    
     if (!response.ok) {
+      const data = await response.json().catch(() => ({ detail: 'Error al cerrar sesión' }))
       throw new Error(data.detail || 'Error al cerrar sesión')
     }
 
+    const data = await response.json()
     currentUser.value = null
     return data
   }
