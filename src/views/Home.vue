@@ -77,31 +77,35 @@ function stopAutoplay() {
   }
 }
 
-// Datos de ejemplo (puedes reemplazar con llamadas a tu API)
-const continueWatching = ref([
-  { id: 1, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 2, title: 'Insert Text', subtitle: 'Next | Ep 15', duration: '02:45', image: '' },
-  { id: 3, title: 'Insert Text', subtitle: 'Next | Ep 10', duration: '02:45', image: '' },
-  { id: 4, title: 'Insert Text', subtitle: 'Next | Ep 08', duration: '02:45', image: '' },
-  { id: 5, title: 'Insert Text', subtitle: 'Next | Ep 12', duration: '02:45', image: '' },
-])
+// Datos de animes desde la API
+const continueWatching = ref([])
+const popularNow = ref([])
+const newReleases = ref([])
 
-const popularNow = ref([
-  { id: 6, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 7, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 8, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 9, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 10, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-  { id: 11, title: 'Insert Text', subtitle: 'Next | Ep 02', duration: '02:45', image: '' },
-])
-
-const newReleases = ref([
-  { id: 12, title: 'Insert Text', subtitle: 'Next Release', duration: '02:45', image: '' },
-  { id: 13, title: 'Insert Text', subtitle: 'Next Release', duration: '02:45', image: '' },
-  { id: 14, title: 'Insert Text', subtitle: 'Next Release', duration: '02:45', image: '' },
-  { id: 15, title: 'Insert Text', subtitle: 'Next Release', duration: '02:45', image: '' },
-  { id: 16, title: 'Insert Text', subtitle: 'Next Release', duration: '02:45', image: '' },
-])
+async function loadAnimes() {
+  try {
+    const response = await fetch('/api/backoffice/public/animes/', {
+      credentials: 'include'
+    })
+    if (response.ok) {
+      const data = await response.json()
+      const animes = data.results || data
+      
+      // Transformar datos para el formato esperado
+      popularNow.value = animes.map(anime => ({
+        id: anime.id,
+        title: anime.title,
+        subtitle: `${anime.year} • ${anime.genre}`,
+        duration: `${anime.rating}/10`,
+        image: anime.cover_image
+      }))
+      
+      newReleases.value = popularNow.value.slice(0, 5)
+    }
+  } catch (error) {
+    console.error('Error loading animes:', error)
+  }
+}
 
 async function handleLogout() {
   try {
@@ -117,6 +121,7 @@ onMounted(async () => {
   if (!user) {
     router.push('/login')
   }
+  await loadAnimes()
   startAutoplay()
 })
 </script>
@@ -135,10 +140,31 @@ onMounted(async () => {
           </nav>
         </div>
         <div class="header-right">
+          <button 
+            v-if="currentUser?.username === 'admin'" 
+            @click="router.push('/backoffice')" 
+            class="btn-admin"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Gestión
+          </button>
           <button class="btn-mi-lista">Mi Lista</button>
           <div v-if="currentUser" class="user-menu">
             <button @click="router.push('/manager/profiles')" class="btn-profile">
               <span>{{ currentUser.username.charAt(0).toUpperCase() }}</span>
+            </button>
+            <button class="btn-logout" @click="handleLogout">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Cerrar Sesión</span>
             </button>
           </div>
         </div>
@@ -210,6 +236,7 @@ onMounted(async () => {
         <AnimeCard
           v-for="item in popularNow"
           :key="item.id"
+          :anime-id="item.id"
           :title="item.title"
           :subtitle="item.subtitle"
           :duration="item.duration"
@@ -225,6 +252,7 @@ onMounted(async () => {
         <AnimeCard
           v-for="item in newReleases"
           :key="item.id"
+          :anime-id="item.id"
           :title="item.title"
           :subtitle="item.subtitle"
           :duration="item.duration"
@@ -290,6 +318,12 @@ onMounted(async () => {
   gap: 1rem;
 }
 
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .btn-mi-lista {
   background: transparent;
   border: 1px solid #a855f7;
@@ -305,6 +339,26 @@ onMounted(async () => {
 .btn-mi-lista:hover {
   background: #a855f7;
   color: #fff;
+}
+
+.btn-admin {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-admin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 .btn-profile {
@@ -335,25 +389,27 @@ onMounted(async () => {
 }
 
 .btn-logout {
-  background: #1a1a1a;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #fff;
   padding: 0.5rem 1rem;
-  border-radius: 50%;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
+  gap: 0.5rem;
+  transition: all 0.2s;
 }
 
 .btn-logout span {
-  display: none;
+  display: inline;
 }
 
 .btn-logout:hover {
-  background: #2a2a2a;
+  background: rgba(255, 77, 77, 0.2);
+  border-color: #ff4d4d;
 }
 
 /* Hero Banner Carousel */

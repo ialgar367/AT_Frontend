@@ -36,6 +36,10 @@ function goToAddAnime() {
   router.push('/backoffice/add-anime')
 }
 
+function goToManageEpisodes(animeId) {
+  router.push(`/backoffice/episodes/${animeId}`)
+}
+
 function goToHome() {
   router.push('/home')
 }
@@ -104,13 +108,19 @@ async function handleLogout() {
           <div class="anime-cover" :style="{ backgroundImage: `url('${anime.cover_image}')` }">
             <div class="anime-overlay">
               <div class="anime-actions">
-                <button class="btn-icon">
+                <button class="btn-icon" @click="goToManageEpisodes(anime.id)" title="Gestionar episodios">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                  </svg>
+                </button>
+                <button class="btn-icon" title="Editar anime">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button class="btn-icon btn-delete">
+                <button class="btn-icon btn-delete" title="Eliminar anime">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

@@ -83,25 +83,32 @@ export function useAuth() {
   }
 
   async function logout() {
-    await setCsrfCookie()
-    const csrfToken = getCookie('csrftoken')
-    
-    const response = await fetch('/api/auth/logout/', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'X-CSRFToken': csrfToken,
-      },
-    })
+    try {
+      await setCsrfCookie()
+      const csrfToken = getCookie('csrftoken')
+      
+      const response = await fetch('/api/auth/logout/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+      })
 
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({ detail: 'Error al cerrar sesión' }))
-      throw new Error(data.detail || 'Error al cerrar sesión')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ detail: 'Error al cerrar sesión' }))
+        throw new Error(data.detail || 'Error al cerrar sesión')
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      // Incluso si hay un error, limpiamos el usuario localmente
+      throw error
+    } finally {
+      // Siempre limpiar el usuario, incluso si hay error en el servidor
+      currentUser.value = null
     }
-
-    const data = await response.json()
-    currentUser.value = null
-    return data
   }
 
   return {

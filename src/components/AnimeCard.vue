@@ -1,14 +1,25 @@
 <script setup>
-defineProps({
+import { useRouter } from 'vue-router'
+
+const props = defineProps({
+  animeId: Number,
   title: String,
   subtitle: String,
   image: String,
   duration: String,
 })
+
+const router = useRouter()
+
+function handleClick() {
+  if (props.animeId) {
+    router.push(`/watch?anime=${props.animeId}`)
+  }
+}
 </script>
 
 <template>
-  <div class="anime-card">
+  <div class="anime-card" @click="handleClick">
     <div class="thumbnail">
       <img :src="image" :alt="title" />
       <div v-if="duration" class="duration-badge">{{ duration }}</div>

@@ -17,6 +17,87 @@ const animeForm = ref({
 const isSaving = ref(false)
 const errorMessage = ref('')
 
+// Jikan API Search
+const searchQuery = ref('')
+const searchResults = ref([])
+const isSearching = ref(false)
+const showResults = ref(false)
+let searchTimeout = null
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop().split(';').shift()
+  }
+  return ''
+}
+
+async function setCsrfCookie() {
+  await fetch('/api/csrf/', {
+    credentials: 'include',
+  })
+}
+
+function searchJikan() {
+  // Limpiar timeout anterior
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+  
+  const query = searchQuery.value.trim()
+  
+  // Si está vacío o muy corto, limpiar resultados
+  if (query.length < 3) {
+    searchResults.value = []
+    showResults.value = false
+    return
+  }
+  
+  // Debounce: esperar 500ms después de que el usuario deje de escribir
+  searchTimeout = setTimeout(async () => {
+    isSearching.value = true
+    try {
+      const response = await fetch(`/api/backoffice/jikan/search/?q=${encodeURIComponent(query)}`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        searchResults.value = data.results || []
+        showResults.value = true
+      } else if (response.status === 429) {
+        console.warn('Rate limit excedido. Intenta de nuevo en unos segundos')
+        searchResults.value = []
+      } else {
+        console.error('Error searching Jikan API')
+        searchResults.value = []
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      searchResults.value = []
+    } finally {
+      isSearching.value = false
+    }
+  }, 500)
+}
+
+function importAnime(anime) {
+  animeForm.value = {
+    title: anime.title_english || anime.title,
+    year: anime.year || new Date().getFullYear(),
+    genre: anime.genre,
+    description: anime.description,
+    cover_image: anime.cover_image,
+    background_image: anime.background_image,
+    rating: anime.rating,
+  }
+  
+  searchQuery.value = ''
+  searchResults.value = []
+  showResults.value = false
+}
+
 async function saveAnime() {
   if (!animeForm.value.title.trim() || !animeForm.value.genre.trim()) {
     errorMessage.value = 'El título y el género son obligatorios'
@@ -27,10 +108,14 @@ async function saveAnime() {
   errorMessage.value = ''
 
   try {
+    await setCsrfCookie()
+    const csrfToken = getCookie('csrftoken')
+    
     const response = await fetch('/api/backoffice/animes/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
       },
       credentials: 'include',
       body: JSON.stringify(animeForm.value)
@@ -73,6 +158,62 @@ function cancel() {
 
     <!-- Form Content -->
     <div class="form-content">
+      <!-- Jikan Search -->
+      <div class="jikan-search-section">
+        <div class="search-header">
+          <h2 class="search-title">🔍 Buscar en MyAnimeList</h2>
+          <p class="search-subtitle">Importa datos automáticamente desde MyAnimeList</p>
+        </div>
+        
+        <div class="search-box">
+          <input 
+            v-model="searchQuery" 
+            @input="searchJikan"
+            type="text" 
+            class="search-input"
+            placeholder="Buscar anime en MyAnimeList... (3+ caracteres)"
+          />
+          <span v-if="isSearching" class="search-loading">Buscando...</span>
+        </div>
+
+        <div v-if="showResults && searchResults.length > 0" class="search-results">
+          <div 
+            v-for="anime in searchResults" 
+            :key="anime.mal_id"
+            class="result-card"
+            @click="importAnime(anime)"
+          >
+            <img 
+              :src="anime.cover_image" 
+              :alt="anime.title"
+              class="result-image"
+              @error="(e) => e.target.src = 'https://via.placeholder.com/150x200?text=No+Image'"
+            />
+            <div class="result-info">
+              <h3 class="result-title">{{ anime.title }}</h3>
+              <p class="result-subtitle" v-if="anime.title_english">{{ anime.title_english }}</p>
+              <div class="result-meta">
+                <span class="meta-item">📅 {{ anime.year || 'N/A' }}</span>
+                <span class="meta-item">⭐ {{ anime.rating }}/10</span>
+                <span class="meta-item" v-if="anime.episodes">📺 {{ anime.episodes }} eps</span>
+              </div>
+              <p class="result-genre">{{ anime.genre }}</p>
+            </div>
+            <div class="result-action">
+              <span class="import-hint">Click para importar →</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="showResults && searchResults.length === 0" class="no-results">
+          No se encontraron resultados para "{{ searchQuery }}"
+        </div>
+      </div>
+
+      <div class="divider">
+        <span>O AÑADE MANUALMENTE</span>
+      </div>
+
       <form @submit.prevent="saveAnime" class="anime-form">
         <div class="form-row">
           <div class="form-group">
@@ -379,6 +520,182 @@ function cancel() {
   cursor: not-allowed;
 }
 
+/* Jikan Search Styles */
+.jikan-search-section {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(139, 92, 246, 0.05));
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.search-header {
+  margin-bottom: 1.5rem;
+}
+
+.search-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #a855f7;
+}
+
+.search-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.search-input:focus {
+  border-color: #a855f7;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+}
+
+.search-loading {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a855f7;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.search-results {
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.result-card {
+  display: flex;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.result-card:hover {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: #a855f7;
+  transform: translateX(5px);
+}
+
+.result-image {
+  width: 80px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem 0;
+  color: #fff;
+}
+
+.result-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 0.5rem 0;
+}
+
+.result-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.meta-item {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.result-genre {
+  font-size: 0.85rem;
+  color: #a855f7;
+  margin: 0;
+}
+
+.result-action {
+  display: flex;
+  align-items: center;
+}
+
+.import-hint {
+  color: #a855f7;
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.result-card:hover .import-hint {
+  opacity: 1;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+}
+
+.divider {
+  text-align: center;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+.divider span {
+  position: relative;
+  background: #1a1a1a;
+  padding: 0 1rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
 @media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
@@ -386,6 +703,15 @@ function cancel() {
 
   .form-actions {
     flex-direction: column;
+  }
+  
+  .result-card {
+    flex-direction: column;
+  }
+  
+  .result-image {
+    width: 100%;
+    height: auto;
   }
 }
 </style>

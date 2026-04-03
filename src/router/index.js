@@ -6,6 +6,8 @@ import Home from '../views/Home.vue'
 import ChooseProfile from '../views/manager/ChooseProfile.vue'
 import AdminDashboard from '../views/backoffice/AdminDashboard.vue'
 import AddAnime from '../views/backoffice/AddAnime.vue'
+import ManageEpisodes from '../views/backoffice/ManageEpisodes.vue'
+import WatchAnime from '../views/WatchAnime.vue'
 
 const routes = [
   {
@@ -41,6 +43,18 @@ const routes = [
     name: 'AddAnime',
     component: AddAnime,
     meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/backoffice/episodes/:id',
+    name: 'ManageEpisodes',
+    component: ManageEpisodes,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/watch',
+    name: 'WatchAnime',
+    component: WatchAnime,
+    meta: { requiresAuth: true },
   },
   {
     path: '/home',
